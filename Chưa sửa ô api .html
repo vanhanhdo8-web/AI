@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Agency AI Controller - Multi-Agent System</title>
+    <!-- Markdown & Code Highlight -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: #007bff;
+            --dark-blue: #0056b3;
+            --light-bg: #f0f7ff;
+            --white: #ffffff;
+            --danger: #ff4d4d;
+            --border: #cce5ff;
+            --gray-bg: #f8f9fa;
+            --chat-user: #007bff;
+            --chat-ai: #e9ecef;
+            --history-hover: #eef2ff;
+            --success: #28a745;
+            --warning: #ffc107;
+            --sidebar-bg: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .navbar {
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .menu-icon {
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--dark-blue);
+            padding: 5px 10px;
+            transition: 0.3s;
+        }
+
+        .menu-icon:hover {
+            background: var(--light-bg);
+            border-radius: 8px;
+        }
+
+        .nav-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--dark-blue);
+            flex: 1;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background: var(--sidebar-bg);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            transition: left 0.3s ease;
+            z-index: 1001;
+            padding-top: 70px;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 16px;
+            font-weight: 500;
+            color: #ecf0f1;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: var(--primary-blue);
+        }
+
+        .sidebar-item.active {
+            background: var(--primary-blue);
+            color: white;
+            border-left-color: white;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1000;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .main-content {
+            margin-top: 70px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid var(--border);
+        }
+
+        .api-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            background: #f8fbff;
+            padding: 8px;
+            border-radius: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+
+        .api-group input {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        .input-name {
+            width: 140px;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+
+        .input-value {
+            flex: 1;
+            min-width: 0;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            font-size: 13px;
+        }
+
+        .btn-add {
+            background: var(--light-bg);
+            color: var(--primary-blue);
+            border: 2px dashed var(--primary-blue);
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+
+        .btn-submit {
+            background: var(--primary-blue);
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+        }
+
+        .btn-remove {
+            background: var(--danger);
+            color: white;
+            padding: 6px 12px;
+            flex-shrink: 0;
+        }
+
+        .chat-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 110px);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chat-header h3 {
+            font-size: 18px;
+        }
+
+        .api-status {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .agent-selector {
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+            color: var(--dark-blue);
+            font-weight: bold;
+            min-width: 200px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message-content pre {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .message-content code {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .message.user .message-content {
+            background: var(--chat-user);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.user .message-content code {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .message.ai .message-content {
+            background: var(--chat-ai);
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area textarea {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .btn-send {
+            background: var(--primary-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+        }
+
+        .typing-indicator {
+            display: none;
+            margin-bottom: 15px;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-content {
+            background: var(--chat-ai);
+            padding: 10px 16px;
+            border-radius: 18px;
+            width: fit-content;
+        }
+
+        .history-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 110px);
+        }
+
+        .history-header {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn-clear-history {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .history-item {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: 0.2s;
+            border-left: 5px solid var(--primary-blue);
+        }
+
+        .history-item:hover {
+            background: var(--history-hover);
+            transform: translateX(3px);
+        }
+
+        .history-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .history-time {
+            font-size: 11px;
+            color: #6c757d;
+        }
+
+        .history-preview {
+            font-size: 12px;
+            color: #555;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-badge {
+            background: var(--light-bg);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .agent-tree {
+            margin-top: 10px;
+        }
+
+        .agent-category {
+            margin: 15px 0;
+            padding-left: 10px;
+            border-left: 3px solid var(--primary-blue);
+        }
+
+        .agent-category h3 {
+            margin-bottom: 10px;
+            color: var(--dark-blue);
+            font-size: 16px;
+        }
+
+        .agent-category ul {
+            list-style: none;
+            padding-left: 20px;
+        }
+
+        .agent-category li {
+            margin: 8px 0;
+            cursor: pointer;
+            color: var(--primary-blue);
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+
+        .agent-category li:hover {
+            background: var(--light-bg);
+            transform: translateX(5px);
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .message-content {
+                max-width: 90%;
+            }
+            .agent-selector {
+                min-width: 150px;
+                font-size: 12px;
+            }
+            .sidebar {
+                width: 280px;
+            }
+            .api-group {
+                flex-wrap: wrap;
+            }
+            .input-name {
+                width: 100%;
+            }
+            .input-value {
+                width: 100%;
+            }
+            .btn-remove {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <button class="menu-icon" onclick="toggleSidebar()">☰</button>
+        <div class="nav-title">🤖 Agency AI Controller - Multi-Agent System</div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-item" onclick="switchPage('ai')">💬 AI Chat</div>
+        <div class="sidebar-item" onclick="switchPage('history')">📜 Lịch sử</div>
+        <div class="sidebar-item" onclick="switchPage('api')">🔑 API Keys</div>
+        <div class="sidebar-item" onclick="switchPage('agents')">📁 Agents Tree</div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <!-- AI Chat Page -->
+        <div id="ai-page" class="page active">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>🤖 Multi-Agent AI System</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="api-status" id="api-status">🔌 Đang kết nối...</div>
+                        <select id="agent-select" class="agent-selector">
+                            <option value="">Đang tải agents...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message ai">
+                        <div class="message-content">
+                            <strong>🤖 Agency AI Controller</strong><br><br>
+                            Chào mừng bạn đến với hệ thống Multi-Agent!<br><br>
+                            💡 Chọn agent phù hợp, cấu hình API Key và bắt đầu làm việc!<br>
+                            🔄 Hệ thống tự động chuyển đổi API khi hết token.
+                        </div>
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typing-indicator">
+                    <div class="typing-content">🤔 Đang xử lý...<span>.</span><span>.</span><span>.</span></div>
+                </div>
+                <div class="chat-input-area">
+                    <textarea id="user-input" placeholder="Nhập câu hỏi của bạn... (Shift+Enter xuống dòng)" rows="2" onkeypress="handleKeyPress(event)"></textarea>
+                    <button class="btn-send" onclick="sendMessage()">📤 Gửi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Page -->
+        <div id="history-page" class="page">
+            <div class="history-container">
+                <div class="history-header">
+                    <h3>📜 Lịch sử trò chuyện</h3>
+                    <button class="btn-clear-history" onclick="clearAllHistory()">🗑️ Xóa tất cả</button>
+                </div>
+                <div class="history-list" id="history-list"></div>
+            </div>
+        </div>
+
+        <!-- API Keys Page -->
+        <div id="api-page" class="page">
+            <div class="container">
+                <h2 style="margin-bottom: 15px; font-size: 20px;">🔑 Cấu hình API Keys</h2>
+                <div style="background: #e8f0fe; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;">
+                    📌 <strong>Các API hỗ trợ:</strong><br>
+                    • <code>GEMINI_API_KEY</code> - Google Gemini (Free)<br>
+                    • <code>OPENAI_API_KEY</code> - OpenAI GPT<br>
+                    • <code>ANTHROPIC_API_KEY</code> - Claude AI<br>
+                    • <code>GROQ_API_KEY</code> - Groq (Free, siêu nhanh)<br>
+                    • <code>DEEPSEEK_API_KEY</code> - DeepSeek<br>
+                    💡 Chỉ cần nhập đúng tên biến, hệ thống tự nhận diện và ưu tiên sử dụng!<br>
+                    🔄 Khi một API hết token, hệ thống sẽ tự động chuyển sang API khác.
+                </div>
+                <button class="btn-add" onclick="addApiKeyField()">+ Thêm API Key</button>
+                <div id="api-container"></div>
+                <button class="btn-submit" onclick="saveEnv()">💾 Lưu cấu hình (tự động lưu sau refresh)</button>
+            </div>
+        </div>
+
+        <!-- Agents Tree Page -->
+        <div id="agents-page" class="page">
+            <div class="container">
+                <h2 style="margin-bottom: 15px;">📁 Cấu trúc Agents</h2>
+                <div id="agents-tree-container" class="agent-tree"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CẤU HÌNH ====================
+        const API_BASE_URL = 'http://localhost:5000/api';
+        
+        let currentConversation = null;
+        let isProcessing = false;
+        let availableAgents = [];
+        
+        const STORAGE_KEY = 'ai_agency_chat_history';
+        const API_KEYS_STORAGE = 'ai_agency_api_keys';
+        
+        // Thứ tự ưu tiên các API
+        const API_PRIORITY = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY', 'DEEPSEEK_API_KEY'];
+        
+        // ==================== MARKDOWN CONFIGURATION ====================
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+        }
+        
+        // ==================== LOAD AGENTS FROM BACKEND ====================
+        async function loadAgentsFromBackend() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/agents`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.agents) {
+                        availableAgents = data.agents;
+                        updateAgentSelect();
+                        renderAgentsTree();
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('Không thể kết nối đến backend:', error);
+            }
+            
+            availableAgents = [];
+            updateAgentSelect();
+            renderAgentsTreeEmpty();
+            return false;
+        }
+        
+        function updateAgentSelect() {
+            const select = document.getElementById('agent-select');
+            if (!select) return;
+            
+            if (availableAgents.length === 0) {
+                select.innerHTML = '<option value="">Không có agent nào</option>';
+                return;
+            }
+            
+            select.innerHTML = '<option value="">-- Chọn Agent --</option>';
+            
+            const grouped = {};
+            for (const agent of availableAgents) {
+                const category = agent.category || 'general';
+                if (!grouped[category]) grouped[category] = [];
+                grouped[category].push(agent);
+            }
+            
+            for (const [category, agents] of Object.entries(grouped)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = formatCategoryName(category);
+                for (const agent of agents) {
+                    const option = document.createElement('option');
+                    option.value = agent.id;
+                    option.textContent = agent.name;
+                    optgroup.appendChild(option);
+                }
+                select.appendChild(optgroup);
+            }
+        }
+        
+        function formatCategoryName(category) {
+            return category.charAt(0).toUpperCase() + category.slice(1);
+        }
+        
+        // ==================== RENDER AGENTS TREE ====================
+        function renderAgentsTree() {
+            const container = document.getElementById('agents-tree-container');
+            if (!container) return;
+            
+            if (availableAgents.length === 0) {
+                container.innerHTML = '<p style="color: #666;">📭 Không có agent nào được tìm thấy. Vui lòng kiểm tra thư mục /agents.</p>';
+                return;
+            }
+            
+            const grouped = {};
+            for (const agent of availableAgents) {
+                const category = agent.category || 'general';
+                if (!grouped[category]) grouped[category] = [];
+                grouped[category].push(agent);
+            }
+            
+            const sortedCategories = Object.keys(grouped).sort();
+            
+            let html = '<div class="agent-tree">';
+            for (const category of sortedCategories) {
+                html += `
+                    <div class="agent-category">
+                        <h3>📁 ${formatCategoryName(category)}/</h3>
+                        <ul>
+                `;
+                for (const agent of grouped[category]) {
+                    html += `
+                        <li onclick="selectAgentById('${agent.id}')">
+                            🤖 ${agent.name}
+                        </li>
+                    `;
+                }
+                html += `
+                        </ul>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+        
+        function renderAgentsTreeEmpty() {
+            const container = document.getElementById('agents-tree-container');
+            if (container) {
+                container.innerHTML = '<p style="color: #666;">⚠️ Không thể kết nối đến backend. Vui lòng đảm bảo Flask server đang chạy tại ' + API_BASE_URL + '</p>';
+            }
+        }
+        
+        function selectAgentById(agentId) {
+            const select = document.getElementById('agent-select');
+            const agent = availableAgents.find(a => a.id === agentId);
+            if (agent && select) {
+                select.value = agentId;
+                switchPage('ai');
+            }
+        }
+        
+        // ==================== CALL CHAT API WITH AUTO FALLBACK ====================
+        async function callChatAPI(agentId, userPrompt) {
+            const agent = availableAgents.find(a => a.id === agentId);
+            if (!agent) {
+                throw new Error('Không tìm thấy agent');
+            }
+            
+            const apiKeys = getApiKeysFromStorage();
+            const availableKeys = Object.keys(apiKeys);
+            
+            if (availableKeys.length === 0) {
+                throw new Error('Chưa có API Key nào được cấu hình. Vui lòng vào tab API Keys để thêm key.');
+            }
+            
+            // Lọc các API có key theo thứ tự ưu tiên
+            const apisToTry = API_PRIORITY.filter(api => apiKeys[api]);
+            
+            if (apisToTry.length === 0) {
+                throw new Error('Không có API Key hợp lệ nào được cấu hình');
+            }
+            
+            let lastError = null;
+            let triedApis = [];
+            
+            // Thử từng API theo thứ tự
+            for (const apiName of apisToTry) {
+                triedApis.push(apiName);
+                try {
+                    console.log(`🔄 Đang thử API: ${apiName}`);
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 60000);
+                    
+                    const response = await fetch(`${API_BASE_URL}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            agent_path: agent.path,
+                            user_prompt: userPrompt,
+                            api_keys: { [apiName]: apiKeys[apiName] }
+                        }),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        const errorMsg = errorData.error || `HTTP ${response.status}`;
+                        
+                        // Kiểm tra lỗi hết token/quota
+                        if (errorMsg.toLowerCase().includes('quota') || 
+                            errorMsg.toLowerCase().includes('rate limit') || 
+                            errorMsg.toLowerCase().includes('exceeded') ||
+                            errorMsg.toLowerCase().includes('429') ||
+                            errorMsg.toLowerCase().includes('resource_exhausted')) {
+                            console.warn(`⚠️ ${apiName} đã hết quota, chuyển sang API khác...`);
+                            lastError = new Error(`${apiName}: ${errorMsg} (Đã hết quota)`);
+                            continue;
+                        }
+                        
+                        throw new Error(errorMsg);
+                    }
+                    
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error || 'Lỗi từ server');
+                    }
+                    
+                    console.log(`✅ Thành công với API: ${apiName}`);
+                    
+                    let finalResponse = data.response;
+                    let fallbackMessage = null;
+                    
+                    // Nếu đã thử nhiều API trước khi thành công
+                    if (triedApis.length > 1) {
+                        fallbackMessage = `⚠️ **Đã chuyển đổi API**\nĐã thử: ${triedApis.slice(0, -1).join(' → ')} → Thành công với **${apiName}**\n\n---\n\n`;
+                        finalResponse = fallbackMessage + data.response;
+                    }
+                    
+                    return { 
+                        response: finalResponse, 
+                        used_api: data.used_api || apiName
+                    };
+                    
+                } catch (error) {
+                    console.error(`${apiName} thất bại:`, error.message);
+                    lastError = error;
+                    
+                    // Nếu là lỗi network hoặc lỗi khác, vẫn thử API tiếp theo
+                    if (apisToTry.indexOf(apiName) < apisToTry.length - 1) {
+                        continue;
+                    }
+                }
+            }
+            
+            // Tất cả API đều thất bại
+            throw new Error(`Tất cả API đều thất bại.\nĐã thử: ${triedApis.join(' → ')}\nLỗi cuối: ${lastError?.message || 'Không xác định'}`);
+        }
+        
+        // ==================== RENDER MESSAGE WITH MARKDOWN ====================
+        function renderMessageContent(text) {
+            if (typeof marked !== 'undefined') {
+                let html = marked.parse(text);
+                if (typeof hljs !== 'undefined') {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    tempDiv.querySelectorAll('pre code').forEach(block => {
+                        hljs.highlightElement(block);
+                    });
+                    return tempDiv.innerHTML;
+                }
+                return html;
+            }
+            return text.replace(/\n/g, '<br>');
+        }
+        
+        // ==================== STORAGE MANAGEMENT ====================
+        function getApiKeysFromStorage() {
+            const raw = localStorage.getItem(API_KEYS_STORAGE);
+            return raw ? JSON.parse(raw) : {};
+        }
+        
+        function getHistoryList() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        }
+        
+        function saveHistoryList(history) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        }
+        
+        function createNewConversation() {
+            return {
+                id: 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                timestamp: new Date().toISOString(),
+                title: 'Cuộc trò chuyện mới',
+                messages: [],
+                agent: '',
+                preview: 'Chưa có tin nhắn'
+            };
+        }
+        
+        function saveCurrentConversationToHistory() {
+            if (!currentConversation || currentConversation.messages.length === 0) return;
+            const firstUserMsg = currentConversation.messages.find(m => m.isUser);
+            if (firstUserMsg) {
+                currentConversation.preview = firstUserMsg.text.substring(0, 50);
+                currentConversation.title = currentConversation.preview + ` (${new Date(currentConversation.timestamp).toLocaleString()})`;
+            }
+            let history = getHistoryList();
+            const index = history.findIndex(item => item.id === currentConversation.id);
+            if (index !== -1) history[index] = currentConversation;
+            else history.unshift(currentConversation);
+            if (history.length > 50) history.pop();
+            saveHistoryList(history);
+        }
+        
+        function addMessageToCurrent(text, isUser, usedApi = null) {
+            if (!currentConversation) return;
+            
+            let displayText = text;
+            if (usedApi && !isUser && !text.includes('Đã chuyển đổi API')) {
+                displayText = `✨ **API sử dụng: ${usedApi}**\n\n${text}`;
+            }
+            
+            currentConversation.messages.push({ 
+                text: displayText, 
+                isUser, 
+                timestamp: new Date().toISOString() 
+            });
+            saveCurrentConversationToHistory();
+            
+            const messagesDiv = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = renderMessageContent(displayText);
+            msgDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // ==================== SEND MESSAGE ====================
+        async function sendMessage() {
+            if (isProcessing) return;
+            
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            const agentId = document.getElementById('agent-select').value;
+            if (!agentId) {
+                alert('Vui lòng chọn Agent trước khi gửi tin nhắn!');
+                return;
+            }
+            
+            isProcessing = true;
+            
+            if (!currentConversation) {
+                currentConversation = createNewConversation();
+            }
+            currentConversation.agent = agentId;
+            
+            addMessageToCurrent(message, true);
+            input.value = '';
+            input.style.height = 'auto';
+            saveCurrentConversationToHistory();
+            
+            document.getElementById('typing-indicator').classList.add('active');
+            
+            try {
+                const result = await callChatAPI(agentId, message);
+                document.getElementById('typing-indicator').classList.remove('active');
+                addMessageToCurrent(result.response, false, result.used_api);
+                updateApiStatusWithActive(result.used_api);
+            } catch (error) {
+                document.getElementById('typing-indicator').classList.remove('active');
+                addMessageToCurrent(`❌ **Lỗi:** ${error.message}`, false);
+            }
+            
+            isProcessing = false;
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        // ==================== HISTORY FUNCTIONS ====================
+        function renderHistoryList() {
+            const container = document.getElementById('history-list');
+            const history = getHistoryList();
+            if (history.length === 0) {
+                container.innerHTML = '<div class="empty-history">📭 Chưa có lịch sử trò chuyện</div>';
+                return;
+            }
+            container.innerHTML = history.map(conv => `
+                <div class="history-item" onclick="loadConversation('${conv.id}')">
+                    <div class="history-title">
+                        <span>${escapeHtml(conv.title.substring(0, 40))}</span>
+                        <span class="history-time">${new Date(conv.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="history-preview">${escapeHtml(conv.preview || '')}</div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <span class="history-badge">${conv.messages.length} tin nhắn</span>
+                        <span class="history-badge" style="cursor:pointer; background:#ffe0e0;" onclick="event.stopPropagation(); deleteHistory('${conv.id}')">🗑️ Xóa</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function loadConversation(id) {
+            const history = getHistoryList();
+            const conv = history.find(c => c.id === id);
+            if (conv) {
+                currentConversation = JSON.parse(JSON.stringify(conv));
+                const messagesDiv = document.getElementById('chat-messages');
+                messagesDiv.innerHTML = '';
+                currentConversation.messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = `message ${msg.isUser ? 'user' : 'ai'}`;
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+                    contentDiv.innerHTML = renderMessageContent(msg.text);
+                    div.appendChild(contentDiv);
+                    messagesDiv.appendChild(div);
+                });
+                document.getElementById('agent-select').value = conv.agent || '';
+                switchPage('ai');
+            }
+        }
+        
+        function deleteHistory(id) {
+            let history = getHistoryList();
+            history = history.filter(c => c.id !== id);
+            saveHistoryList(history);
+            if (currentConversation && currentConversation.id === id) {
+                currentConversation = createNewConversation();
+                const messagesDiv = document.getElementById('chat-messages');
+                messagesDiv.innerHTML = '';
+                const welcomeMsg = document.createElement('div');
+                welcomeMsg.className = 'message ai';
+                welcomeMsg.innerHTML = '<div class="message-content">✨ Bắt đầu cuộc trò chuyện mới!</div>';
+                messagesDiv.appendChild(welcomeMsg);
+            }
+            renderHistoryList();
+        }
+        
+        function clearAllHistory() {
+            if (confirm('Xóa tất cả lịch sử?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                renderHistoryList();
+            }
+        }
+        
+        // ==================== API KEYS UI ====================
+        function loadApiKeysToForm() {
+            const keys = getApiKeysFromStorage();
+            const container = document.getElementById('api-container');
+            container.innerHTML = '';
+            if (Object.keys(keys).length === 0) {
+                addApiKeyField();
+            } else {
+                for (const [name, value] of Object.entries(keys)) {
+                    const group = document.createElement('div');
+                    group.className = 'api-group';
+                    group.innerHTML = `
+                        <input type="text" class="input-name" value="${escapeHtml(name)}" placeholder="Tên biến">
+                        <input type="password" class="input-value" value="${escapeHtml(value)}" placeholder="API Key">
+                        <button class="btn-remove" onclick="removeField(this)">Xóa</button>
+                    `;
+                    container.appendChild(group);
+                }
+            }
+        }
+        
+        function addApiKeyField() {
+            const container = document.getElementById('api-container');
+            const group = document.createElement('div');
+            group.className = 'api-group';
+            group.innerHTML = `
+                <input type="text" class="input-name" placeholder="VD: GEMINI_API_KEY">
+                <input type="password" class="input-value" placeholder="Nhập API Key...">
+                <button class="btn-remove" onclick="removeField(this)">Xóa</button>
+            `;
+            container.appendChild(group);
+        }
+        
+        function removeField(btn) {
+            const groups = document.querySelectorAll('.api-group');
+            if (groups.length > 1) btn.parentElement.remove();
+            else alert('Phải giữ lại ít nhất một trường!');
+        }
+        
+        function saveEnv() {
+            const keys = {};
+            let hasEmptyKey = false;
+            
+            document.querySelectorAll('.api-group').forEach(g => {
+                const name = g.querySelector('.input-name').value.trim().toUpperCase();
+                const value = g.querySelector('.input-value').value.trim();
+                
+                if (name && !value) {
+                    hasEmptyKey = true;
+                    g.style.border = '1px solid red';
+                } else if (name && value) {
+                    keys[name] = value;
+                    g.style.border = '';
+                }
+            });
+            
+            if (hasEmptyKey) {
+                alert('⚠️ Vui lòng nhập đầy đủ giá trị cho các API key hoặc xóa trường trống!');
+                return;
+            }
+            
+            if (Object.keys(keys).length === 0) {
+                alert('⚠️ Vui lòng nhập ít nhất một API Key hợp lệ!');
+                return;
+            }
+            
+            localStorage.setItem(API_KEYS_STORAGE, JSON.stringify(keys));
+            alert('✅ Đã lưu API Keys! Keys sẽ được giữ lại sau refresh.');
+            updateApiStatus();
+        }
+        
+        function updateApiStatus() {
+            const keys = getApiKeysFromStorage();
+            const count = Object.keys(keys).length;
+            const statusDiv = document.getElementById('api-status');
+            if (count > 0) {
+                statusDiv.innerHTML = `✅ ${count} API key(s) đã cấu hình`;
+                statusDiv.style.background = 'rgba(40,167,69,0.3)';
+            } else {
+                statusDiv.innerHTML = '⚠️ Chưa có API Key';
+                statusDiv.style.background = 'rgba(255,193,7,0.3)';
+            }
+        }
+        
+        function updateApiStatusWithActive(activeApi) {
+            const statusDiv = document.getElementById('api-status');
+            if (activeApi) {
+                const apiName = activeApi.replace('_API_KEY', '');
+                statusDiv.innerHTML = `✅ Đang dùng: ${apiName}`;
+                statusDiv.style.background = 'rgba(40,167,69,0.3)';
+            } else {
+                updateApiStatus();
+            }
+        }
+        
+        // ==================== UI FUNCTIONS ====================
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+        
+        function switchPage(page) {
+            document.getElementById('ai-page').classList.remove('active');
+            document.getElementById('history-page').classList.remove('active');
+            document.getElementById('api-page').classList.remove('active');
+            document.getElementById('agents-page').classList.remove('active');
+            document.getElementById(`${page}-page`).classList.add('active');
+            
+            if (page === 'history') renderHistoryList();
+            if (page === 'api') loadApiKeysToForm();
+            if (page === 'agents') renderAgentsTree();
+            
+            if (window.innerWidth <= 768) toggleSidebar();
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ==================== INITIALIZATION ====================
+        async function init() {
+            await loadAgentsFromBackend();
+            currentConversation = createNewConversation();
+            updateApiStatus();
+            
+            const textarea = document.getElementById('user-input');
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            });
+        }
+        
+        init();
+        
+        // Expose functions to global scope
+        window.toggleSidebar = toggleSidebar;
+        window.switchPage = switchPage;
+        window.addApiKeyField = addApiKeyField;
+        window.removeField = removeField;
+        window.saveEnv = saveEnv;
+        window.sendMessage = sendMessage;
+        window.handleKeyPress = handleKeyPress;
+        window.loadConversation = loadConversation;
+        window.deleteHistory = deleteHistory;
+        window.clearAllHistory = clearAllHistory;
+        window.selectAgentById = selectAgentById;
+    </script>
+</body>
+</html>
