@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Agency AI Controller - Hỗ trợ đa API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: #007bff;
+            --dark-blue: #0056b3;
+            --light-bg: #f0f7ff;
+            --white: #ffffff;
+            --danger: #ff4d4d;
+            --border: #cce5ff;
+            --gray-bg: #f8f9fa;
+            --chat-user: #007bff;
+            --chat-ai: #e9ecef;
+            --history-hover: #eef2ff;
+            --success: #28a745;
+            --warning: #ffc107;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .navbar {
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .menu-icon {
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--dark-blue);
+            padding: 5px 10px;
+            transition: 0.3s;
+        }
+
+        .menu-icon:hover {
+            background: var(--light-bg);
+            border-radius: 8px;
+        }
+
+        .nav-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--dark-blue);
+            flex: 1;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: var(--white);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: left 0.3s ease;
+            z-index: 1001;
+            padding-top: 70px;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .sidebar-item:hover {
+            background: var(--light-bg);
+            color: var(--primary-blue);
+        }
+
+        .sidebar-item.active {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1000;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .main-content {
+            margin-top: 70px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 650px;
+            margin: 0 auto;
+            border: 1px solid var(--border);
+        }
+
+        .api-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            background: #f8fbff;
+            padding: 8px;
+            border-radius: 8px;
+            align-items: center;
+        }
+
+        .api-group input {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        .input-name {
+            width: 160px;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+
+        .input-value {
+            flex: 1;
+            min-width: 0;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            font-size: 13px;
+        }
+
+        .btn-add {
+            background: var(--light-bg);
+            color: var(--primary-blue);
+            border: 2px dashed var(--primary-blue);
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+
+        .btn-submit {
+            background: var(--primary-blue);
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+        }
+
+        .btn-remove {
+            background: var(--danger);
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .chat-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 110px);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .chat-header h3 {
+            font-size: 18px;
+        }
+
+        .api-status {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .agent-selector {
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+            color: var(--dark-blue);
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: var(--chat-user);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .message-content {
+            background: var(--chat-ai);
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area textarea {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .btn-send {
+            background: var(--primary-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+        }
+
+        .typing-indicator {
+            display: none;
+            margin-bottom: 15px;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-content {
+            background: var(--chat-ai);
+            padding: 10px 16px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            width: fit-content;
+        }
+
+        .history-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 110px);
+        }
+
+        .history-header {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .history-header h3 {
+            font-size: 18px;
+        }
+
+        .btn-clear-history {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .history-item {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: 0.2s;
+            border-left: 5px solid var(--primary-blue);
+        }
+
+        .history-item:hover {
+            background: var(--history-hover);
+            transform: translateX(3px);
+        }
+
+        .history-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: normal;
+        }
+
+        .history-preview {
+            font-size: 13px;
+            color: #555;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .history-badge {
+            background: var(--light-bg);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--dark-blue);
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                padding: 15px;
+            }
+            .message-content {
+                max-width: 85%;
+            }
+            .input-name {
+                width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <button class="menu-icon" onclick="toggleSidebar()">☰</button>
+        <div class="nav-title">Agency AI Controller - Đa API</div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-item" onclick="switchPage('ai')">🤖 AI Chat</div>
+        <div class="sidebar-item" onclick="switchPage('history')">📜 Lịch sử trò chuyện</div>
+        <div class="sidebar-item" onclick="switchPage('api')">🔑 API Keys</div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="main-content">
+        <!-- AI Chat Page -->
+        <div id="ai-page" class="page active">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>🤖 AI Assistant - Hỗ trợ nhiều API</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="api-status" id="api-status">🔌 Đang kiểm tra...</div>
+                        <select id="agent-select" class="agent-selector">
+                            <option value="general">💬 General Assistant</option>
+                            <option value="coder">💻 Code Expert</option>
+                            <option value="writer">✍️ Content Writer</option>
+                            <option value="analyst">📊 Data Analyst</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message ai">
+                        <div class="message-content">
+                            👋 Xin chào! Tôi hỗ trợ nhiều API AI khác nhau:<br><br>
+                            ✅ <strong>Google Gemini</strong> (Miễn phí)<br>
+                            ✅ <strong>OpenAI GPT</strong> (GPT-3.5/GPT-4)<br>
+                            ✅ <strong>Claude (Anthropic)</strong><br>
+                            ✅ <strong>Groq</strong> (Miễn phí, siêu nhanh)<br>
+                            ✅ <strong>DeepSeek</strong><br><br>
+                            📌 Vào tab <strong>🔑 API Keys</strong> để cấu hình. Chỉ cần nhập key là dùng được ngay!
+                        </div>
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typing-indicator">
+                    <div class="typing-content">🤔 Đang gọi API<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span></div>
+                </div>
+                <div class="chat-input-area">
+                    <textarea id="user-input" placeholder="Nhập tin nhắn... (Shift+Enter xuống dòng)" rows="2" onkeypress="handleKeyPress(event)"></textarea>
+                    <button class="btn-send" onclick="sendMessage()">📤 Gửi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Page -->
+        <div id="history-page" class="page">
+            <div class="history-container">
+                <div class="history-header">
+                    <h3>📜 Lịch sử trò chuyện</h3>
+                    <button class="btn-clear-history" onclick="clearAllHistory()">🗑️ Xóa tất cả</button>
+                </div>
+                <div class="history-list" id="history-list">
+                    <div class="empty-history">Đang tải...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys Page -->
+        <div id="api-page" class="page">
+            <div class="container">
+                <h2 style="margin-bottom: 15px; font-size: 20px;">🔑 Cấu hình API Keys</h2>
+                <div style="background: #e8f0fe; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;">
+                    📌 <strong>Các API hỗ trợ:</strong><br>
+                    • <code>GEMINI_API_KEY</code> - Google Gemini (Free)<br>
+                    • <code>OPENAI_API_KEY</code> - OpenAI GPT<br>
+                    • <code>ANTHROPIC_API_KEY</code> - Claude AI<br>
+                    • <code>GROQ_API_KEY</code> - Groq (Free, nhanh)<br>
+                    • <code>DEEPSEEK_API_KEY</code> - DeepSeek<br>
+                    💡 Chỉ cần nhập đúng tên biến, hệ thống tự nhận diện!
+                </div>
+                <button class="btn-add" onclick="addApiKeyField()">+ Thêm API Key</button>
+                <div id="api-container"></div>
+                <button class="btn-submit" onclick="saveEnv()">💾 Lưu cấu hình (tự động lưu sau refresh)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CẤU HÌNH API PROVIDERS ====================
+        const API_PROVIDERS = {
+            'GEMINI_API_KEY': {
+                name: 'Google Gemini',
+                endpoint: (key) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`,
+                call: async (message, apiKey, systemPrompt) => {
+                    const response = await fetch(API_PROVIDERS['GEMINI_API_KEY'].endpoint(apiKey), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: systemPrompt + "\n\nNgười dùng: " + message }] }],
+                            generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Gemini: ${response.status}`);
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Không có phản hồi từ Gemini.";
+                }
+            },
+            'OPENAI_API_KEY': {
+                name: 'OpenAI GPT',
+                endpoint: 'https://api.openai.com/v1/chat/completions',
+                call: async (message, apiKey, systemPrompt) => {
+                    const response = await fetch(API_PROVIDERS['OPENAI_API_KEY'].endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-3.5-turbo',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: message }
+                            ],
+                            temperature: 0.7,
+                            max_tokens: 800
+                        })
+                    });
+                    if (!response.ok) throw new Error(`OpenAI: ${response.status}`);
+                    const data = await response.json();
+                    return data.choices?.[0]?.message?.content || "Không có phản hồi từ OpenAI.";
+                }
+            },
+            'ANTHROPIC_API_KEY': {
+                name: 'Claude AI',
+                endpoint: 'https://api.anthropic.com/v1/messages',
+                call: async (message, apiKey, systemPrompt) => {
+                    const response = await fetch(API_PROVIDERS['ANTHROPIC_API_KEY'].endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-3-sonnet-20240229',
+                            max_tokens: 800,
+                            system: systemPrompt,
+                            messages: [{ role: 'user', content: message }]
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Claude: ${response.status}`);
+                    const data = await response.json();
+                    return data.content?.[0]?.text || "Không có phản hồi từ Claude.";
+                }
+            },
+            'GROQ_API_KEY': {
+                name: 'Groq (Siêu nhanh)',
+                endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+                call: async (message, apiKey, systemPrompt) => {
+                    const response = await fetch(API_PROVIDERS['GROQ_API_KEY'].endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'mixtral-8x7b-32768',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: message }
+                            ],
+                            temperature: 0.7,
+                            max_tokens: 800
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Groq: ${response.status}`);
+                    const data = await response.json();
+                    return data.choices?.[0]?.message?.content || "Không có phản hồi từ Groq.";
+                }
+            },
+            'DEEPSEEK_API_KEY': {
+                name: 'DeepSeek',
+                endpoint: 'https://api.deepseek.com/v1/chat/completions',
+                call: async (message, apiKey, systemPrompt) => {
+                    const response = await fetch(API_PROVIDERS['DEEPSEEK_API_KEY'].endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'deepseek-chat',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: message }
+                            ],
+                            temperature: 0.7,
+                            max_tokens: 800
+                        })
+                    });
+                    if (!response.ok) throw new Error(`DeepSeek: ${response.status}`);
+                    const data = await response.json();
+                    return data.choices?.[0]?.message?.content || "Không có phản hồi từ DeepSeek.";
+                }
+            }
+        };
+
+        const PRIORITY_ORDER = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY', 'DEEPSEEK_API_KEY'];
+
+        // ==================== QUẢN LÝ LƯU TRỮ ====================
+        const STORAGE_KEY = 'ai_agency_chat_history';
+        const API_KEYS_STORAGE = 'ai_agency_api_keys';
+        
+        let currentConversation = null;
+        let isProcessing = false;
+
+        function getHistoryList() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveHistoryList(history) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        }
+
+        function getApiKeysFromStorage() {
+            const raw = localStorage.getItem(API_KEYS_STORAGE);
+            return raw ? JSON.parse(raw) : {};
+        }
+
+        function saveApiKeysToStorage(keys) {
+            localStorage.setItem(API_KEYS_STORAGE, JSON.stringify(keys));
+        }
+
+        function updateApiStatus() {
+            const keys = getApiKeysFromStorage();
+            const statusDiv = document.getElementById('api-status');
+            let activeApi = null;
+            for (const key of PRIORITY_ORDER) {
+                if (keys[key]) {
+                    activeApi = API_PROVIDERS[key]?.name || key;
+                    break;
+                }
+            }
+            if (activeApi) {
+                statusDiv.innerHTML = `✅ Đang dùng: ${activeApi}`;
+                statusDiv.style.background = 'rgba(40,167,69,0.3)';
+            } else {
+                statusDiv.innerHTML = '⚠️ Chưa có API Key - Chế độ demo';
+                statusDiv.style.background = 'rgba(255,193,7,0.3)';
+            }
+        }
+
+        // ==================== QUẢN LÝ CUỘC TRÒ CHUYỆN ====================
+        function createNewConversation() {
+            return {
+                id: 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                timestamp: new Date().toISOString(),
+                title: 'Cuộc trò chuyện mới',
+                messages: [],
+                agent: 'general',
+                preview: 'Chưa có tin nhắn'
+            };
+        }
+
+        function upsertConversation(conv) {
+            let history = getHistoryList();
+            const index = history.findIndex(item => item.id === conv.id);
+            if (index !== -1) history[index] = conv;
+            else history.unshift(conv);
+            if (history.length > 50) history.pop();
+            saveHistoryList(history);
+        }
+
+        function saveCurrentConversationToHistory() {
+            if (!currentConversation || currentConversation.messages.length === 0) return;
+            const firstUserMsg = currentConversation.messages.find(m => m.isUser);
+            if (firstUserMsg) {
+                currentConversation.preview = firstUserMsg.text.length > 50 ? firstUserMsg.text.substring(0, 47) + '...' : firstUserMsg.text;
+                currentConversation.title = currentConversation.preview.substring(0, 35) + ` (${new Date(currentConversation.timestamp).toLocaleString()})`;
+            }
+            upsertConversation(currentConversation);
+        }
+
+        function addMessageToCurrent(text, isUser, agentType = null) {
+            if (!currentConversation) return;
+            const wasEmpty = currentConversation.messages.length === 0;
+            currentConversation.messages.push({
+                text, isUser, timestamp: new Date().toISOString(),
+                agent: isUser ? null : (agentType || currentConversation.agent)
+            });
+            if (wasEmpty || currentConversation.messages.length > 0) saveCurrentConversationToHistory();
+            
+            const messagesDiv = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+            msgDiv.innerHTML = `<div class="message-content">${escapeHtml(text)}</div>`;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function renderMessagesToChatUI(messages) {
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.innerHTML = '';
+            if (!messages.length) {
+                messagesDiv.innerHTML = `<div class="message ai"><div class="message-content">👋 Bắt đầu cuộc trò chuyện mới!</div></div>`;
+            } else {
+                messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = `message ${msg.isUser ? 'user' : 'ai'}`;
+                    div.innerHTML = `<div class="message-content">${escapeHtml(msg.text)}</div>`;
+                    messagesDiv.appendChild(div);
+                });
+            }
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function loadConversationToChat(conv) {
+            currentConversation = JSON.parse(JSON.stringify(conv));
+            renderMessagesToChatUI(currentConversation.messages);
+            document.getElementById('agent-select').value = currentConversation.agent;
+            switchPage('ai');
+        }
+
+        function initCurrentConversation() {
+            if (currentConversation && currentConversation.messages.length > 0) return;
+            currentConversation = createNewConversation();
+            renderMessagesToChatUI([]);
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.innerHTML = `<div class="message ai"><div class="message-content">👋 Cuộc trò chuyện mới!<br>💡 Nhắn tin để lưu vào lịch sử.</div></div>`;
+        }
+
+        // ==================== GỌI API TỰ ĐỘNG ====================
+        function getSystemPrompt(agentType) {
+            const prompts = {
+                general: "Bạn là trợ lý AI thân thiện, hữu ích. Hãy trả lời bằng tiếng Việt tự nhiên, chi tiết.",
+                coder: "Bạn là chuyên gia lập trình. Trả lời bằng tiếng Việt, cung cấp code mẫu, giải thích rõ ràng.",
+                writer: "Bạn là chuyên gia viết nội dung. Trả lời bằng tiếng Việt, văn phong mượt mà, sáng tạo.",
+                analyst: "Bạn là chuyên gia phân tích dữ liệu. Trả lời bằng tiếng Việt với số liệu, thống kê chuyên sâu."
+            };
+            return prompts[agentType] || prompts.general;
+        }
+
+        async function callAIWithAvailableKey(message, agentType) {
+            const apiKeys = getApiKeysFromStorage();
+            const systemPrompt = getSystemPrompt(agentType);
+            
+            for (const keyName of PRIORITY_ORDER) {
+                if (apiKeys[keyName] && API_PROVIDERS[keyName]) {
+                    try {
+                        const response = await API_PROVIDERS[keyName].call(message, apiKeys[keyName], systemPrompt);
+                        return { response, provider: API_PROVIDERS[keyName].name };
+                    } catch (error) {
+                        console.error(`${keyName} error:`, error);
+                        continue;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function getDemoResponse(message, agentType) {
+            const agentNames = { general: 'General Assistant', coder: 'Code Expert', writer: 'Content Writer', analyst: 'Data Analyst' };
+            const demos = {
+                general: `📝 **${agentNames[agentType]} (Demo)**\n\n${message}\n\n🔧 *Đây là chế độ demo. Hãy cấu hình API Key ở tab API Keys để dùng AI thật!*`,
+                coder: `💻 **${agentNames[agentType]} (Demo)**\n\n\`\`\`python\n# Demo: ${message}\nprint("Thêm API Key để nhận phản hồi thật!")\n\`\`\`\n✨ Vui lòng cấu hình API Key.`,
+                writer: `✍️ **${agentNames[agentType]} (Demo)**\n\n**${message}**\n\n🔧 *Chế độ demo. Thêm API Key để có nội dung chất lượng cao!*`,
+                analyst: `📊 **${agentNames[agentType]} (Demo)**\n\n**Phân tích: ${message}**\n\n📌 *Demo: Cấu hình API Key để nhận phân tích thực tế.*`
+            };
+            return demos[agentType] || demos.general;
+        }
+
+        // ==================== CHAT CHÍNH ====================
+        async function sendMessage() {
+            if (isProcessing) return;
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            isProcessing = true;
+            addMessageToCurrent(message, true, null);
+            input.value = '';
+            
+            const agent = document.getElementById('agent-select').value;
+            currentConversation.agent = agent;
+            saveCurrentConversationToHistory();
+            
+            document.getElementById('typing-indicator').classList.add('active');
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+            
+            let response = '';
+            try {
+                const result = await callAIWithAvailableKey(message, agent);
+                if (result) {
+                    response = `✨ **${result.provider}**\n\n${result.response}`;
+                } else {
+                    response = getDemoResponse(message, agent);
+                }
+            } catch (error) {
+                response = `❌ Lỗi: ${error.message}\n\nVui lòng kiểm tra API Key hoặc kết nối mạng.`;
+            }
+            
+            document.getElementById('typing-indicator').classList.remove('active');
+            addMessageToCurrent(response, false, agent);
+            isProcessing = false;
+            updateApiStatus();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== LỊCH SỬ UI ====================
+        function renderHistoryList() {
+            const container = document.getElementById('history-list');
+            const history = getHistoryList();
+            if (history.length === 0) {
+                container.innerHTML = '<div class="empty-history">📭 Chưa có cuộc trò chuyện nào. Hãy chat để lưu lại lịch sử.</div>';
+                return;
+            }
+            container.innerHTML = history.map(conv => {
+                const time = new Date(conv.timestamp).toLocaleString();
+                const icon = conv.agent === 'coder' ? '💻' : (conv.agent === 'writer' ? '✍️' : (conv.agent === 'analyst' ? '📊' : '💬'));
+                return `
+                    <div class="history-item" onclick="loadConversationToHistoryById('${conv.id}')">
+                        <div class="history-title">
+                            <span>${icon} ${escapeHtml(conv.title)}</span>
+                            <span class="history-time">${time}</span>
+                        </div>
+                        <div class="history-preview">${escapeHtml(conv.preview || 'Không có nội dung')}</div>
+                        <div style="margin-top:6px; display:flex; gap:6px; justify-content:space-between;">
+                            <span class="history-badge">${conv.messages.length} tin nhắn</span>
+                            <span class="history-badge" style="cursor:pointer; background:#ffe0e0;" onclick="event.stopPropagation(); deleteHistoryItem('${conv.id}')">🗑️ Xóa</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadConversationToHistoryById(id) {
+            const conv = getHistoryList().find(c => c.id === id);
+            if (conv) loadConversationToChat(conv);
+        }
+
+        function deleteHistoryItem(id) {
+            let history = getHistoryList();
+            history = history.filter(c => c.id !== id);
+            saveHistoryList(history);
+            if (currentConversation && currentConversation.id === id) initCurrentConversation();
+            renderHistoryList();
+        }
+
+        function clearAllHistory() {
+            if (confirm('⚠️ Xóa tất cả lịch sử?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                if (currentConversation && currentConversation.messages.length > 0) saveCurrentConversationToHistory();
+                renderHistoryList();
+                alert('Đã xóa toàn bộ lịch sử.');
+            }
+        }
+
+        // ==================== API KEYS UI ====================
+        function loadApiKeysToForm() {
+            const keys = getApiKeysFromStorage();
+            const container = document.getElementById('api-container');
+            container.innerHTML = '';
+            if (Object.keys(keys).length === 0) {
+                addApiKeyField();
+            } else {
+                for (const [name, value] of Object.entries(keys)) {
+                    const group = document.createElement('div');
+                    group.className = 'api-group';
+                    group.innerHTML = `
+                        <input type="text" class="input-name" value="${escapeHtml(name)}">
+                        <input type="password" class="input-value" value="${escapeHtml(value)}">
+                        <button class="btn-remove" onclick="removeField(this)">Xóa</button>
+                    `;
+                    container.appendChild(group);
+                }
+            }
+        }
+
+        function addApiKeyField() {
+            const container = document.getElementById('api-container');
+            const group = document.createElement('div');
+            group.className = 'api-group';
+            group.innerHTML = `
+                <input type="text" class="input-name" placeholder="VD: GEMINI_API_KEY">
+                <input type="password" class="input-value" placeholder="Nhập API Key...">
+                <button class="btn-remove" onclick="removeField(this)">Xóa</button>
+            `;
+            container.appendChild(group);
+        }
+
+        function removeField(btn) {
+            const groups = document.querySelectorAll('.api-group');
+            if (groups.length > 1) btn.parentElement.remove();
+            else alert('Phải giữ lại ít nhất một trường!');
+        }
+
+        function saveEnv() {
+            const keys = {};
+            document.querySelectorAll('.api-group').forEach(g => {
+                const name = g.querySelector('.input-name').value.trim().toUpperCase();
+                const value = g.querySelector('.input-value').value.trim();
+                if (name && value) keys[name] = value;
+            });
+            if (Object.keys(keys).length === 0) {
+                alert('Vui lòng nhập ít nhất một API Key!');
+                return;
+            }
+            saveApiKeysToStorage(keys);
+            alert('✅ Đã lưu API Keys! Keys sẽ được giữ lại sau refresh.');
+            updateApiStatus();
+        }
+
+        // ==================== SIDEBAR & KHỞI TẠO ====================
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function switchPage(page) {
+            document.getElementById('ai-page').classList.remove('active');
+            document.getElementById('history-page').classList.remove('active');
+            document.getElementById('api-page').classList.remove('active');
+            document.getElementById(`${page}-page`).classList.add('active');
+            
+            if (page === 'history') renderHistoryList();
+            if (page === 'api') loadApiKeysToForm();
+            if (window.innerWidth <= 768) toggleSidebar();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCurrentConversation();
+            updateApiStatus();
+            document.getElementById('agent-select').addEventListener('change', () => {
+                if (currentConversation) currentConversation.agent = document.getElementById('agent-select').value;
+            });
+            const textarea = document.getElementById('user-input');
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            });
+        });
+
+        window.toggleSidebar = toggleSidebar;
+        window.switchPage = switchPage;
+        window.addApiKeyField = addApiKeyField;
+        window.removeField = removeField;
+        window.saveEnv = saveEnv;
+        window.sendMessage = sendMessage;
+        window.handleKeyPress = handleKeyPress;
+        window.loadConversationToHistoryById = loadConversationToHistoryById;
+        window.deleteHistoryItem = deleteHistoryItem;
+        window.clearAllHistory = clearAllHistory;
+    </script>
+</body>
+</html>
