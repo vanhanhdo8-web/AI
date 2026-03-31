@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý API Key</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --dark-blue: #0056b3;
+            --light-bg: #f0f7ff;
+            --white: #ffffff;
+            --danger: #ff4d4d;
+            --border: #cce5ff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
+            width: 100%;
+            max-width: 750px;
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+        }
+
+        h2 {
+            color: var(--dark-blue);
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .api-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            animation: fadeIn 0.3s ease-in-out;
+            background: #f8fbff;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e0f0ff;
+            flex-wrap: nowrap; /* Không cho xuống dòng */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input[type="password"], input[type="text"] {
+            padding: 10px;
+            border: 1px solid #b3d7ff;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            box-sizing: border-box;
+        }
+
+        /* Ô tên biến - nhỏ gọn */
+        .input-name {
+            width: 180px;
+            flex-shrink: 0;
+            font-weight: bold;
+            color: var(--dark-blue);
+        }
+
+        /* Ô giá trị - chiếm phần còn lại */
+        .input-value {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+
+        button {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .btn-add {
+            background-color: var(--light-bg);
+            color: var(--primary-blue);
+            border: 2px dashed var(--primary-blue);
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 12px;
+        }
+
+        .btn-add:hover {
+            background-color: #e6f2ff;
+        }
+
+        .btn-remove {
+            background-color: var(--danger);
+            color: var(--white);
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .btn-remove:hover {
+            background-color: #e60000;
+        }
+
+        .btn-submit {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            width: 100%;
+            margin-top: 10px;
+            font-size: 16px;
+            padding: 12px;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--dark-blue);
+            box-shadow: 0 4px 10px rgba(0, 86, 179, 0.3);
+        }
+
+        /* Responsive: vẫn giữ cùng dòng, chỉ thu nhỏ kích thước */
+        @media (max-width: 600px) {
+            .container {
+                max-width: 95%;
+                padding: 15px;
+            }
+            
+            .input-name {
+                width: 130px;
+            }
+            
+            .input-value {
+                min-width: 100px;
+            }
+            
+            button {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            
+            input {
+                font-size: 12px;
+                padding: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .input-name {
+                width: 110px;
+            }
+            
+            .btn-remove {
+                padding: 8px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Cấu hình Môi trường (ENV)</h2>
+        
+        <button class="btn-add" onclick="addApiKeyField()">+ Thêm Biến Môi Trường</button>
+
+        <form id="api-form" onsubmit="event.preventDefault(); saveApiKeys();">
+            <div id="api-container">
+                <div class="api-group">
+                    <input type="text" placeholder="Tên (VD: GEMINI_API_KEY)" class="api-input input-name" required>
+                    <input type="password" placeholder="Nhập mã Key vào đây..." class="api-input input-value" required>
+                    <button type="button" class="btn-remove" onclick="removeField(this)">Xóa</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">Lưu Cấu Hình</button>
+        </form>
+    </div>
+
+    <script>
+        // Thêm một nhóm gồm (Tên + Key)
+        function addApiKeyField() {
+            const container = document.getElementById('api-container');
+            
+            const group = document.createElement('div');
+            group.className = 'api-group';
+            
+            // Ô nhập Tên biến
+            const inputName = document.createElement('input');
+            inputName.type = 'text';
+            inputName.placeholder = 'Tên (VD: OPENAI_API_KEY)';
+            inputName.className = 'api-input input-name';
+            inputName.required = true;
+
+            // Ô nhập Giá trị biến
+            const inputValue = document.createElement('input');
+            inputValue.type = 'password';
+            inputValue.placeholder = 'Nhập mã Key vào đây...';
+            inputValue.className = 'api-input input-value';
+            inputValue.required = true;
+            
+            // Nút Xóa
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn-remove';
+            removeBtn.innerText = 'Xóa';
+            removeBtn.onclick = function() { removeField(this); };
+            
+            group.appendChild(inputName);
+            group.appendChild(inputValue);
+            group.appendChild(removeBtn);
+            container.appendChild(group);
+        }
+
+        function removeField(button) {
+            const group = button.parentElement;
+            const allGroups = document.querySelectorAll('.api-group');
+            
+            if (allGroups.length > 1) {
+                group.remove();
+            } else {
+                alert("Bạn phải giữ lại ít nhất một trường nhập liệu!");
+            }
+        }
+
+        // Gom dữ liệu thành dạng Object
+        function saveApiKeys() {
+            const groups = document.querySelectorAll('.api-group');
+            let envData = {}; 
+            
+            groups.forEach(group => {
+                const nameNode = group.querySelector('.input-name');
+                const valueNode = group.querySelector('.input-value');
+                
+                if (nameNode && valueNode) {
+                    const name = nameNode.value.trim().toUpperCase();
+                    const val = valueNode.value.trim();
+                    
+                    if (name !== "" && val !== "") {
+                        envData[name] = val;
+                    }
+                }
+            });
+
+            if (Object.keys(envData).length === 0) {
+                alert("Vui lòng nhập ít nhất một cặp tên và giá trị!");
+                return;
+            }
+
+            console.log("Dữ liệu cấu hình đã gom:", envData);
+            
+            // Format chuỗi để hiển thị thông báo
+            let alertMsg = "Đã lưu các biến môi trường sau:\n\n";
+            for (const [key, value] of Object.entries(envData)) {
+                let maskedValue = value.length > 8 ? value.substring(0, 4) + "..." + value.substring(value.length - 4) : "***";
+                alertMsg += `- ${key}: ${maskedValue}\n`;
+            }
+            alert(alertMsg);
+            
+            /* Gửi dữ liệu dạng JSON về backend Flask
+             fetch('/save_env', {
+                 method: 'POST',
+                 headers: {'Content-Type': 'application/json'},
+                 body: JSON.stringify(envData)
+             });
+            */
+        }
+    </script>
+</body>
+</html>
